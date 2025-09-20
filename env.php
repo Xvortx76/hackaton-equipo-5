@@ -6,7 +6,7 @@ define('ASSET_SCALE', 2); // subunidades (centavos)
 
 // === MERCHANT (quien cobra) ===
 // Payment Pointer del comercio (estilo $host/alice)
-define('MERCHANT_PAYMENT_POINTER', '$wallet.merchant.example/alice');
+define('MERCHANT_PAYMENT_POINTER', '$ilp.interledger-test.dev/caleb');
 
 // Servidores del MERCHANT (proveedor Open Payments del comercio)
 define('MERCHANT_AUTH_ISSUER',   'https://auth.merchant.example');     // OAuth issuer
