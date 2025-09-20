@@ -1,8 +1,54 @@
 <?php // ilp_client.php
 require_once __DIR__.'/env.php';
 
+function _apply_curl_network_opts($ch) {
+  // DNS públicos (opcional)
+  if (defined('CURL_DNS_SERVERS')) {
+    $dns = constant('CURL_DNS_SERVERS');
+    if (is_string($dns) && $dns !== '') {
+      @curl_setopt($ch, CURLOPT_DNS_SERVERS, $dns);
+    }
+  }
+  // Resolver host->IP manual (opcional)
+  if (defined('CURL_RESOLVE')) {
+    $resolve = constant('CURL_RESOLVE');
+    if (is_array($resolve) && !empty($resolve)) {
+      @curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
+    }
+  }
+  // CA bundle custom (opcional, Windows/XAMPP)
+  if (defined('CURL_CA_BUNDLE')) {
+    $cab = constant('CURL_CA_BUNDLE');
+    if (is_string($cab) && $cab !== '' && file_exists($cab)) {
+      @curl_setopt($ch, CURLOPT_CAINFO, $cab);
+    }
+  }
+}
+
 function http_json($method, $url, $headers = [], $body = null) {
   $ch = curl_init($url);
+
+  // --- Opciones de red seguras (no rompen si no defines las constantes) ---
+  if (defined('CURL_DNS_SERVERS')) {
+    $dns = constant('CURL_DNS_SERVERS');
+    if (is_string($dns) && $dns !== '') {
+      @curl_setopt($ch, CURLOPT_DNS_SERVERS, $dns);
+    }
+  }
+  if (defined('CURL_RESOLVE')) {
+    $resolve = constant('CURL_RESOLVE'); // debe ser array ej: ['host:443:1.2.3.4']
+    if (is_array($resolve) && !empty($resolve)) {
+      @curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
+    }
+  }
+  if (defined('CURL_CA_BUNDLE')) {
+    $cab = constant('CURL_CA_BUNDLE');   // ruta a cacert.pem si la usas
+    if (is_string($cab) && $cab !== '' && file_exists($cab)) {
+      @curl_setopt($ch, CURLOPT_CAINFO, $cab);
+    }
+  }
+  // ------------------------------------------------------------------------
+
   curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
   curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
   curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -30,13 +76,36 @@ function http_json($method, $url, $headers = [], $body = null) {
   return [$status, $json, $res];
 }
 
+
 function oauth_token($issuer, $clientId, $clientSecret, $scope='') {
   $url = rtrim($issuer, '/').'/token';
   $headers = ['Content-Type: application/x-www-form-urlencoded'];
-  $fields = 'grant_type=client_credentials';
+  $fields  = 'grant_type=client_credentials';
   if ($scope) $fields .= '&scope='.urlencode($scope);
 
   $ch = curl_init($url);
+
+  // --- Opciones de red seguras (no fallan si no defines las constantes) ---
+  if (defined('CURL_DNS_SERVERS')) {
+    $dns = constant('CURL_DNS_SERVERS');                // ej: '8.8.8.8,1.1.1.1'
+    if (is_string($dns) && $dns !== '') {
+      @curl_setopt($ch, CURLOPT_DNS_SERVERS, $dns);
+    }
+  }
+  if (defined('CURL_RESOLVE')) {
+    $resolve = constant('CURL_RESOLVE');                // ej: ['host:443:1.2.3.4']
+    if (is_array($resolve) && !empty($resolve)) {
+      @curl_setopt($ch, CURLOPT_RESOLVE, $resolve);
+    }
+  }
+  if (defined('CURL_CA_BUNDLE')) {
+    $cab = constant('CURL_CA_BUNDLE');                  // ej: __DIR__.'/cacert.pem'
+    if (is_string($cab) && $cab !== '' && file_exists($cab)) {
+      @curl_setopt($ch, CURLOPT_CAINFO, $cab);
+    }
+  }
+  // ------------------------------------------------------------------------
+
   curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST           => true,
@@ -46,6 +115,7 @@ function oauth_token($issuer, $clientId, $clientSecret, $scope='') {
     CURLOPT_CONNECTTIMEOUT => HTTP_TIMEOUT,
     CURLOPT_TIMEOUT        => HTTP_TIMEOUT,
   ]);
+
   $res = curl_exec($ch);
   if ($res === false) {
     $err = curl_error($ch);
@@ -54,11 +124,18 @@ function oauth_token($issuer, $clientId, $clientSecret, $scope='') {
   }
   $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
   curl_close($ch);
-  if ($status < 200 || $status >= 300) throw new Exception('OAuth http '.$status.': '.$res);
+
+  if ($status < 200 || $status >= 300) {
+    throw new Exception('OAuth http '.$status.': '.$res);
+  }
+
   $json = json_decode($res, true);
-  if (empty($json['access_token'])) throw new Exception('OAuth sin access_token');
+  if (empty($json['access_token'])) {
+    throw new Exception('OAuth sin access_token');
+  }
   return $json['access_token'];
 }
+
 
 /**
  * Discovery de Payment Pointer (Open Payments)

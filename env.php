@@ -60,3 +60,17 @@ if (!defined('MERCHANT_CLIENT_SECRET')) define('MERCHANT_CLIENT_SECRET', 'caleb-
 
 if (!defined('PAYER_CLIENT_ID'))        define('PAYER_CLIENT_ID',        'carlosz-client-id');
 if (!defined('PAYER_CLIENT_SECRET'))    define('PAYER_CLIENT_SECRET',    'carlosz-client-secret');
+
+// Forzar DNS públicos para cURL (si tu red corporativa/emulador bloquea DNS)
+if (!defined('CURL_DNS_SERVERS')) define('CURL_DNS_SERVERS', '8.8.8.8,1.1.1.1');
+
+// (Opcional) Resolver manual si tu DNS sigue caído.
+// Formato: "host:puerto:IP" — Rellena la IP real si la conoces.
+// if (!defined('CURL_RESOLVE')) define('CURL_RESOLVE', ['auth.ilp.interledger-test.dev:443:XXX.XXX.XXX.XXX']);
+
+// --- Networking defaults para cURL (evitan 'undefined constant' y ayudan con DNS/SSL) ---
+// --- Networking para cURL (usa solo UN bloque como este) ---
+if (!defined('CURL_DNS_SERVERS')) define('CURL_DNS_SERVERS', '8.8.8.8,1.1.1.1'); // o '' si no quieres forzar
+if (!defined('CURL_RESOLVE'))     define('CURL_RESOLVE', []); // p.ej: ['auth.ilp.interledger-test.dev:443:AAA.BBB.CCC.DDD']
+if (!defined('CURL_CA_BUNDLE'))   define('CURL_CA_BUNDLE', ''); // p.ej: __DIR__.'/cacert.pem' en Windows
+

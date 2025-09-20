@@ -23,7 +23,7 @@
   </style>
 
   <!-- Generación de QR (cliente) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.js"></script>
   <!-- Lector de QR (cámara) -->
   <script src="https://unpkg.com/html5-qrcode"></script>
 </head>
@@ -50,23 +50,39 @@
 
     <!-- COBRAR -->
     <section id="charge" class="card hidden" style="margin-top:14px">
-      <div class="row"><button class="btn" onclick="go('home')">⬅ Regresar</button><h3 style="margin:0">Cobrar</h3></div>
+      <div class="row">
+        <button class="btn" onclick="go('home')">⬅ Regresar</button>
+        <h3 style="margin:0">Cobrar</h3>
+      </div>
       <div class="grid grid-2" style="margin-top:10px">
         <div>
           <label>Moneda</label>
           <select id="currency"><option value="MXN">MXN</option><option value="USD">USD</option></select>
-          <div style="margin-top:10px"><label>Monto</label><input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" /></div>
-          <div style="margin-top:10px"><label>Concepto (opcional)</label><input id="concept" type="text" placeholder="Artesanía / Servicio" /></div>
-          <div class="row" style="margin-top:12px"><button class="btn primary" onclick="buildQR()">Generar QR</button></div>
+          <div style="margin-top:10px">
+            <label>Monto</label>
+            <input id="amount" type="number" min="0.01" step="0.01" placeholder="0.00" />
+          </div>
+          <div style="margin-top:10px">
+            <label>Concepto (opcional)</label>
+            <input id="concept" type="text" placeholder="Artesanía / Servicio" />
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn primary" onclick="buildQR()">Generar QR</button>
+          </div>
           <p class="muted" id="chargeMsg" style="margin-top:8px"></p>
         </div>
-        <div class="center" style="min-height:300px"><canvas id="qrCanvas"></canvas></div>
+        <div class="center" style="min-height:300px">
+          <canvas id="qrCanvas"></canvas>
+        </div>
       </div>
     </section>
 
     <!-- PAGAR -->
     <section id="pay" class="card hidden" style="margin-top:14px">
-      <div class="row"><button class="btn" onclick="go('home')">⬅ Regresar</button><h3 style="margin:0">Pagar</h3></div>
+      <div class="row">
+        <button class="btn" onclick="go('home')">⬅ Regresar</button>
+        <h3 style="margin:0">Pagar</h3>
+      </div>
       <div class="grid grid-2" style="margin-top:10px">
         <div>
           <p class="muted">Escanea el QR (Incoming Payment URL) del comercio.</p>
@@ -89,52 +105,108 @@
       </div>
     </section>
 
-    <footer class="muted" style="text-align:center;margin:24px 0">© <?php echo date('Y'); ?> K’ab’ Pay · MVP Open Payments</footer>
+    <footer class="muted" style="text-align:center;margin:24px 0">
+      © <?php echo date('Y'); ?> K’ab’ Pay · MVP Open Payments
+    </footer>
   </div>
 
   <script>
+    // Scanner (ámbito global para poder detenerlo)
+    let scanner = null;
+    let incomingUrl = '';
+
+    function stopScanner() {
+      if (scanner) {
+        try { scanner.stop(); } catch(_) {}
+        try { scanner.clear(); } catch(_) {}
+        scanner = null;
+      }
+    }
+
     function go(view){
+      // Ocultar secciones
       document.getElementById('charge').classList.add('hidden');
       document.getElementById('pay').classList.add('hidden');
+
+      // Detener cámara si salimos de "Pagar"
+      if (view !== 'pay') stopScanner();
+
+      // Mostrar la vista solicitada
       if(view==='charge') document.getElementById('charge').classList.remove('hidden');
-      if(view==='pay')    document.getElementById('pay').classList.remove('hidden');
+      if(view==='pay')    { document.getElementById('pay').classList.remove('hidden'); startScanner(); }
     }
 
     // === COBRAR: crear Incoming Payment y poner su URL en el QR ===
     async function buildQR(){
-      const amount = Number(document.getElementById('amount').value);
-      const currency = document.getElementById('currency').value;
-      const ref = document.getElementById('concept').value.trim();
+      const amount   = Number(document.getElementById('amount')?.value);
+      const currency = document.getElementById('currency')?.value || 'MXN';
+      const ref      = document.getElementById('concept')?.value?.trim() || '';
       const msg = document.getElementById('chargeMsg');
+      const canvas = document.getElementById('qrCanvas');
       msg.textContent = '';
 
-      if(!amount || amount <= 0){ msg.textContent = 'Monto inválido.'; return; }
-      const res = await fetch('create_incoming.php', {
-        method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ amount, currency, ref })
-      });
-      const data = await res.json();
-      if(!data.ok){ msg.textContent = 'Error creando el cobro.'; return; }
+      // Validaciones mínimas
+      if(!amount || amount <= 0){
+        msg.textContent = 'Monto inválido.';
+        return;
+      }
 
-      const url = data.qr; // Incoming Payment URL
-      const canvas = document.getElementById('qrCanvas');
-      await QRCode.toCanvas(canvas, url, { width: 256, margin: 2 });
-      msg.textContent = 'QR listo (Open Payments).';
+      // Llamada al backend (wallet sale de env.php)
+      let qrText = '';
+      try {
+        const res = await fetch('create_incoming.php', {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ amount, currency, ref })
+        });
+        if (!res.ok) {
+          const txt = await res.text();
+          msg.textContent = 'Error creando el cobro: HTTP '+res.status+' '+txt;
+          return;
+        }
+        const data = await res.json();
+        if(!data?.ok || !data?.qr){
+          msg.textContent = 'Error creando el cobro: ' + (data?.error || 'desconocido');
+          return;
+        }
+        qrText = String(data.qr);
+      } catch (e) {
+        msg.textContent = 'Error de red: ' + e.message;
+        return;
+      }
+
+      // Dibujar QR
+      try {
+        if (typeof QRCode === 'undefined' || !QRCode?.toCanvas) {
+          msg.textContent = 'No se cargó la librería de QR.';
+          return;
+        }
+        const ctx = canvas.getContext('2d');
+        ctx?.clearRect(0, 0, canvas.width, canvas.height);
+        canvas.width = 256;
+        canvas.height = 256;
+        await QRCode.toCanvas(canvas, qrText, { width: 256, margin: 2 });
+        msg.textContent = 'QR listo.';
+      } catch (err) {
+        msg.textContent = 'No se pudo generar el QR.';
+        console.error(err);
+      }
     }
 
     // === PAGAR: escanear URL del Incoming Payment, obtener detalles y pagar ===
-    let scanner = null;
-    let incomingUrl = '';
     async function startScanner(){
       if(scanner) return;
       const scanMsg = document.getElementById('scanMsg');
+      const readerEl = document.getElementById('reader');
+      if (!readerEl) return;
+
       scanner = new Html5Qrcode("reader");
       const cfg = { fps:10, qrbox:220, aspectRatio:1.0, formatsToSupport:[Html5QrcodeSupportedFormats.QR_CODE] };
+
       scanner.start({ facingMode:'environment' }, cfg,
         async (text) => {
           if(/^https?:\/\//.test(text)){
             incomingUrl = text;
-            // (Opcional) mostrar detalles del incoming con GET:
             try{
               const r = await fetch(text, { headers: { 'Accept': 'application/openpayments+json' }});
               const j = await r.json();
@@ -158,13 +230,12 @@
         (err) => {}
       ).catch(e => { scanMsg.textContent = 'Permiso de cámara denegado.'; });
     }
-    // iniciar al entrar a pagar
-    document.querySelector('button[onclick="go(\'pay\')"]').addEventListener('click', startScanner);
 
     async function confirmPay(){
       if(!incomingUrl){ alert('No hay URL de cobro.'); return; }
       const res = await fetch('pay_openpayments.php', {
-        method:'POST', headers:{'Content-Type':'application/json'},
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ incomingPayment: incomingUrl })
       });
       const data = await res.json();
