@@ -161,12 +161,12 @@
         });
         if (!res.ok) {
           const txt = await res.text();
-          msg.textContent = 'Error creando el cobro: HTTP '+res.status+' '+txt;
+          msg.textContent = 'Error creando el cobro';
           return;
         }
         const data = await res.json();
         if(!data?.ok || !data?.qr){
-          msg.textContent = 'Error creando el cobro: ' + (data?.error || 'desconocido');
+          msg.textContent = 'Error creando el cobro: ';
           return;
         }
         qrText = String(data.qr);
@@ -240,7 +240,7 @@
       });
       const data = await res.json();
       if(data.ok){ alert('Pago enviado ✅'); location.reload(); }
-      else { alert('Error: ' + (data.error || '')); }
+      else { alert('Error') }
     }
   </script>
 </body>
