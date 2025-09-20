@@ -37,4 +37,4 @@ Escalabilidad: solución tecnológica sostenible y fácil de expandir a más reg
 
 ¿Quién sera el responsable de construir cada parte?
 Implenetacion de la API de pagos: Caleb franco
-Pagina principal y Codigo Qr: Antonio Ruvalcaba y Cinthia Arreola 
+Pagina principal y Codigo Qr: Antonio Ruvalcaba y Cinthia Arreola
