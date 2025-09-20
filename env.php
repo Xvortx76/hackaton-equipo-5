@@ -1,27 +1,27 @@
-<?php // env.php
+<?php // env.php para K'ab' Pay con Open Payments (Interledger Test)
 
 // === Activo (moneda) ===
 define('ASSET_CODE',  'MXN');
 define('ASSET_SCALE', 2); // subunidades (centavos)
 
-// === MERCHANT (quien cobra) ===
-// Payment Pointer del comercio (estilo $host/alice)
-define('MERCHANT_PAYMENT_POINTER', '$wallet.merchant.example/alice');
+// === MERCHANT (caleb) ===
+define('MERCHANT_PAYMENT_POINTER', '$ilp.interledger-test.dev/caleb');
+define('MERCHANT_KEY_ID',  '548df86f-ee42-47eb-a637-8a2038f9bc5b');
+define('MERCHANT_PUBLIC_KEY',  'MCowBQYDK2VwAyEAmX25PIY5IKvsCZFcJ91o8cIz4Wt2R3gMnJo1vs3TmZc=');
+// ⚠️ necesitas también la PRIVATE KEY para firmar DPoP
+define('MERCHANT_PRIVATE_KEY', '--- PON AQUÍ LA PRIVATE KEY GENERADA ---');
 
-// Servidores del MERCHANT (proveedor Open Payments del comercio)
-define('MERCHANT_AUTH_ISSUER',   'https://auth.merchant.example');     // OAuth issuer
-define('MERCHANT_CLIENT_ID',     'YOUR_MERCHANT_CLIENT_ID');
-define('MERCHANT_CLIENT_SECRET', 'YOUR_MERCHANT_CLIENT_SECRET');
+// === PAYER (carlosz) ===
+define('PAYER_PAYMENT_POINTER', '$ilp.interledger-test.dev/carlosz');
+define('PAYER_KEY_ID',  'c7865ac0-3194-4ccf-8367-0b29f7a99a3f');
+define('PAYER_PUBLIC_KEY',  'MCowBQYDK2VwAyEAx9jVLuSU7QMQZqoegF/+XUpvTj40BHjJR6rUwIvkgOc=');
+// ⚠️ igual necesitas la PRIVATE KEY
+define('PAYER_PRIVATE_KEY', '--- PON AQUÍ LA PRIVATE KEY GENERADA ---');
 
-// Si tu proveedor expone resource base fijo, ponlo; si no, se resuelve por discovery:
-define('MERCHANT_RESOURCE_BASE', ''); // ej: 'https://api.merchant.example' o vacío para usar discovery
+// === Servidores de testnet ===
+// En el sandbox de Interledger Testnet suele ser:
+define('AUTH_SERVER_URL', 'https://auth.ilp.interledger-test.dev'); 
+define('RESOURCE_SERVER_URL', 'https://openpayments.ilp.interledger-test.dev');
 
-// === PAYER (quien paga) ===
-define('PAYER_AUTH_ISSUER',   'https://auth.payer.example');
-define('PAYER_CLIENT_ID',     'YOUR_PAYER_CLIENT_ID');
-define('PAYER_CLIENT_SECRET', 'YOUR_PAYER_CLIENT_SECRET');
-// Base del wallet del pagador (su Resource Server Open Payments)
-define('PAYER_RESOURCE_BASE', 'https://api.payer.example');
-
-// === Opcional: tiempos de espera HTTP ===
+// === Opciones comunes ===
 define('HTTP_TIMEOUT', 15);
