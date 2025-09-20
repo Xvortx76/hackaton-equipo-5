@@ -35,6 +35,13 @@ Confianza y apoyo local: promotores comunitarios que acompañan y capacitan.
 
 Escalabilidad: solución tecnológica sostenible y fácil de expandir a más regiones.
 
+¿Cuál es su arquitectura/stack simple?
+Arquitectura web ligera (HTML/JS + PHP) que solo genera y consume recursos Open Payments.
+El “core financiero” está en el wallet provider Interledger (nosotros no guardamos ni movemos dinero).
+
+¿Qué funciones son indispensables? 
+Generar el QR, proceso de cobro y pago
+
 ¿Quién sera el responsable de construir cada parte?
 Implenetacion de la API de pagos: Caleb franco
 Pagina principal y Codigo Qr: Antonio Ruvalcaba y Cinthia Arreola
